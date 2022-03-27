@@ -156,7 +156,7 @@ public:
 			n = nullptr;
 			ptr = nullptr;
 		}
-			
+			/*
 			if(count < 1) {
 				Cell* p = nullptr;
 				if (isValid((a + 1), b) == 1)
