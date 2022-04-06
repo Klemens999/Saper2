@@ -8,24 +8,6 @@
 			sprit = " B ";
 		}
 	}
-	//przenies do boarda
-	int Cell::checkNeighbour() {
-		if (isBomb == 1) {
-			return 1;
-		}
-	}
-	//niech zwraca boola
-	void Cell::checkBomb() {
-		if (move < 1) {
-			if (isBomb) {
-				isBomb = false;
-			}
-		}
-		else if (isBomb) {
-			std::cout << "GAME OVER";
-			gameOver = true;
-		}
-	}
 	void Cell::changeSprite(int x) {
 		sprit = '(' + std::to_string(x) + ')';
 	}
@@ -40,3 +22,4 @@
 	}
 
 
+	const std::string Cell::flag = { "(F)" };
