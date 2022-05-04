@@ -1,7 +1,7 @@
 #include <vector>
 #include <algorithm>
 #include "board.h"
-
+#include <utility>
 
 	Board::Board(int x) : size(x) {
 		field.resize(size);
@@ -13,95 +13,64 @@
 	{
 		return (x >= 0) && (x < size) && (y >= 0) && (y < size);
 	}
-
-	void Board::selectCoord(int a, int b) {
-		int count{};
-		int y = a - 1;
-		int x = b - 1;
-
+	
+	bool Board::selectCoord(int x, int y) {
+		std::vector<std::pair<int, int>> coords{
+					{(x - 1), y}, {(x + 1), y},
+					{(x - 1), (y + 1)}, {x, (y + 1)}, {(x + 1), (y + 1)},
+					{(x - 1), (y - 1)}, {x, (y - 1)}, {(x + 1), (y - 1)} };
+		
 		if (isValid(x, y)) {
+			auto& cell = field.at(x).at(y);
+			if (!isCovered(cell)) return false;
 
-			auto Cell = field.at(x).at(y);
-			if (!Cell.isCovered) return;
-			Game.checkBomb(Cell);
-			if (Game.gameOver) return;
+			if (checkBomb(cell)) {
 
-			if (isValid((x - 1), y) == 1) {
-				auto n = field.at(x - 1).at(y);
-				if (checkNeighbour(n) == 1) {
-					count++;
-				}
+			};
+			
+			int count{};
+			for (const auto& pair : coords) {
+				count += countNeighbourBombs(pair.first,pair.second);
 			}
-			if (isValid((x + 1), y) == 1) {
-				auto n = field.at(x + 1).at(y);
-				if (checkNeighbour(n) == 1) {
-					count++;
-				}
-			}
-			if (isValid((x - 1), (y + 1)) == 1) {
-				auto n = field.at(x - 1).at(y + 1);
-				if (checkNeighbour(n) == 1) {
-					count++;
-				}
-			}
-			if (isValid(x, (y + 1)) == 1) {
-				auto n = field.at(x).at(y + 1);
-				if (checkNeighbour(n) == 1) {
-					count++;
-				}
-			}
-			if (isValid((x + 1), (y + 1)) == 1) {
-				auto n = field.at(x + 1).at(y + 1);
-				if (checkNeighbour(n) == 1) {
-					count++;
-				}
-			}
-			if (isValid((x - 1), (y - 1)) == 1) {
-				auto n = field.at(x - 1).at(y - 1);
-				if (checkNeighbour(n) == 1) {
-					count++;
-				}
-			}
-			if (isValid(x, (y - 1)) == 1) {
-				auto n = field.at(x).at(y - 1);
-				if (checkNeighbour(n) == 1) {
-					count++;
-				}
-			}
-			if (isValid((x + 1), (y - 1)) == 1) {
-				auto n = field.at(x + 1).at(y - 1);
-				if (checkNeighbour(n) == 1) {
-					count++;
-				}
-			}
-			Cell.uncover();
+
+			cell.uncover(count);
+
 			if (count > 0) {
-				Cell.changeSprite(count);
-				Cell.uncover();
-				return;
+				return true;
 			}
 		}
-		if (count == 0) {
-
-			if (isValid((a + 1), b) == 1)
-				selectCoord((a + 1), b);
-			if (isValid((a - 1), b) == 1)
-				selectCoord((a - 1), b);
-			if (isValid((a + 1), (b + 1)) == 1)
-				selectCoord((a + 1), (b + 1));
-			if (isValid(a, (b + 1)) == 1)
-				selectCoord(a, (b + 1));
-			if (isValid((a - 1), (b + 1)) == 1)
-				selectCoord((a - 1), (b + 1));
-			if (isValid((a + 1), (b - 1)) == 1)
-				selectCoord((a + 1), (b - 1));
-			if (isValid(a, (b - 1)) == 1)
-				selectCoord(a, (b - 1));
-			if (isValid((a - 1), (b - 1)) == 1)
-				selectCoord((a - 1), (b - 1));
+		else {
+			return false;
 		}
-		Game.move++;
+		for (const auto& pair : coords) {
+			selectCoord(pair.first, pair.second);
+		}
+		return true;
 	}
+	int Board::countNeighbourBombs(int x, int y) {
+		//jakby jeblo to zmien
+		if (isValid(x, y) && checkBomb(field.at(x).at(y))) 
+			return 1;
+		return 0;
+	}
+
+	int Board::checkNeighbourBombs(int x, int y) {
+		std::vector<std::pair<int, int>> coords{
+					{(x - 1), y}, {(x + 1), y},
+					{(x - 1), (y + 1)}, {x, (y + 1)}, {(x + 1), (y + 1)},
+					{(x - 1), (y - 1)}, {x, (y - 1)}, {(x + 1), (y - 1)} };
+		int count{};
+		for (const auto& pair : coords) {
+			count += countNeighbourBombs(pair.first, pair.second);
+		}
+		return count;
+
+	}
+
+	void Board::checkNeighboursRecursivly(int x, int y) {
+	
+	};
+
 	void Board::showBoard() {
 		for (int x = 0; x < field.size(); x++){
 			for (int y = 0; y < field.size(); y++){
@@ -111,6 +80,28 @@
 		}
 	}
 
-	bool checkNeighbour(Cell c) {
-		return c.isBomb == true;
+	Cell& Board::getCell(int x, int y)
+	{
+		return field.at(x).at(y);
+	}
+
+	void Board::showDebugBoard() {
+		for (int x = 0; x < field.size(); x++) {
+			for (int y = 0; y < field.size(); y++) {
+				std::cout << field[x][y].getDebugSprite();
+			}
+			std::cout << std::endl;
+		}
+	}
+
+	bool Board::checkBomb(const Cell& c) const {
+		return c.isBomb;
+	}
+
+	bool Board::isCovered(const Cell& c) const {
+		return c.isCovered;
+	}
+
+	bool Board::validateCoords(int x, int y) {
+		return isValid(x, y) && isCovered(field.at(x).at(y));
 	}
