@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Polski Dubbing AI</title>
+<style>
+  :root {
+    --bg: #0f1220; --card: #1a1f35; --card2: #232a4a;
+    --text: #e8eaf6; --muted: #9aa3c7; --accent: #7c5cff; --accent2: #4ecdc4;
+    --err: #ff6b6b; --ok: #51cf66;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+    background: radial-gradient(1200px 600px at 70% -10%, #2b2160 0%, var(--bg) 55%);
+    color: var(--text); min-height: 100vh; display: flex; justify-content: center;
+    padding: 40px 16px;
+  }
+  .wrap { width: 100%; max-width: 680px; }
+  h1 { font-size: 1.9rem; margin-bottom: 6px; }
+  h1 .grad { background: linear-gradient(90deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .sub { color: var(--muted); margin-bottom: 28px; font-size: .95rem; }
+  .card { background: var(--card); border: 1px solid #2c3357; border-radius: 16px;
+    padding: 24px; margin-bottom: 20px; }
+  .tabs { display: flex; gap: 8px; margin-bottom: 18px; }
+  .tab { flex: 1; padding: 10px; text-align: center; border-radius: 10px;
+    background: var(--card2); color: var(--muted); cursor: pointer; border: 1px solid transparent;
+    user-select: none; transition: .15s; }
+  .tab.active { color: var(--text); border-color: var(--accent);
+    background: linear-gradient(180deg, #2b2f55, #242a4c); }
+  input[type=url], select {
+    width: 100%; padding: 12px 14px; border-radius: 10px; border: 1px solid #343c66;
+    background: #131730; color: var(--text); font-size: 1rem; outline: none;
+  }
+  input[type=url]:focus, select:focus { border-color: var(--accent); }
+  .drop { border: 2px dashed #3b4370; border-radius: 12px; padding: 34px 16px;
+    text-align: center; color: var(--muted); cursor: pointer; transition: .15s; }
+  .drop.drag, .drop:hover { border-color: var(--accent2); color: var(--text); }
+  .drop .fname { color: var(--accent2); font-weight: 600; word-break: break-all; }
+  .opts { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 18px; }
+  .opt label { display: block; font-size: .82rem; color: var(--muted); margin-bottom: 6px; }
+  .check { display: flex; align-items: center; gap: 10px; margin-top: 16px;
+    color: var(--muted); font-size: .92rem; cursor: pointer; user-select: none; }
+  .check input { width: 18px; height: 18px; accent-color: var(--accent); }
+  button.go {
+    margin-top: 22px; width: 100%; padding: 14px; font-size: 1.05rem; font-weight: 700;
+    color: white; background: linear-gradient(90deg, var(--accent), #5e8bff);
+    border: none; border-radius: 12px; cursor: pointer; transition: .15s;
+  }
+  button.go:hover { filter: brightness(1.12); }
+  button.go:disabled { opacity: .45; cursor: not-allowed; }
+  .hidden { display: none !important; }
+  .barwrap { background: #131730; border-radius: 999px; height: 14px; overflow: hidden;
+    margin: 14px 0 10px; }
+  .bar { height: 100%; width: 0%;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    transition: width .6s ease; }
+  .stage { color: var(--muted); font-size: .92rem; min-height: 1.3em; }
+  .pct { float: right; color: var(--text); font-weight: 600; }
+  .error { color: var(--err); white-space: pre-wrap; font-size: .9rem; margin-top: 8px; }
+  .done-title { color: var(--ok); font-weight: 700; font-size: 1.15rem; margin-bottom: 4px; }
+  .lang { color: var(--muted); font-size: .88rem; margin-bottom: 14px; }
+  .dl { display: flex; gap: 12px; flex-wrap: wrap; }
+  a.btn { flex: 1; min-width: 180px; text-align: center; padding: 12px; border-radius: 10px;
+    text-decoration: none; font-weight: 600; color: var(--text);
+    background: var(--card2); border: 1px solid #3b4370; transition: .15s; }
+  a.btn.primary { background: linear-gradient(90deg, #2f9e8f, var(--accent2)); color: #06231f;
+    border: none; }
+  a.btn:hover { filter: brightness(1.1); }
+  .again { margin-top: 16px; background: none; border: none; color: var(--muted);
+    cursor: pointer; text-decoration: underline; font-size: .9rem; }
+  .foot { color: #5c6491; font-size: .8rem; text-align: center; margin-top: 8px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>🎬 <span class="grad">Polski Dubbing AI</span></h1>
+  <p class="sub">Wklej link do filmu albo wgraj plik — aplikacja przetlumaczy mowę na język polski
+     i nałoży dubbing (lektora) na wyciszony oryginał. Do tego dostaniesz polskie napisy SRT.</p>
+
+  <div class="card" id="formCard">
+    <div class="tabs">
+      <div class="tab active" id="tabUrl">🔗 Link</div>
+      <div class="tab" id="tabFile">📁 Plik</div>
+    </div>
+
+    <div id="paneUrl">
+      <input type="url" id="url" placeholder="np. https://www.youtube.com/watch?v=...">
+    </div>
+
+    <div id="paneFile" class="hidden">
+      <div class="drop" id="drop">
+        <div id="dropText">Przeciągnij i upuść plik wideo<br>albo kliknij, aby wybrać</div>
+        <input type="file" id="file" accept="video/*,.mkv,.ts" class="hidden">
+      </div>
+    </div>
+
+    <div class="opts">
+      <div class="opt">
+        <label for="voice">Głos lektora</label>
+        <select id="voice">
+          <option value="marek">Marek (męski)</option>
+          <option value="zofia">Zofia (żeński)</option>
+        </select>
+      </div>
+      <div class="opt">
+        <label for="model">Jakość transkrypcji (Whisper)</label>
+        <select id="model">
+          <option value="tiny">Najszybsza (tiny)</option>
+          <option value="base">Szybka (base)</option>
+          <option value="small" selected>Zrównoważona (small)</option>
+          <option value="medium">Dokładna (medium)</option>
+          <option value="large-v3">Najdokładniejsza (large-v3)</option>
+        </select>
+      </div>
+    </div>
+
+    <label class="check">
+      <input type="checkbox" id="burn">
+      Wypal polskie napisy na obrazie (wolniejsze — wymaga przekodowania wideo)
+    </label>
+
+    <button class="go" id="go">🚀 Przetłumacz i zdubbinguj</button>
+    <div class="error hidden" id="formError"></div>
+  </div>
+
+  <div class="card hidden" id="progressCard">
+    <div class="stage"><span id="stageLabel">Wysyłanie...</span><span class="pct" id="pct">0%</span></div>
+    <div class="barwrap"><div class="bar" id="bar"></div></div>
+    <div class="stage" id="msg"></div>
+    <div class="error hidden" id="jobError"></div>
+    <button class="again hidden" id="retry">← Wróć i spróbuj ponownie</button>
+  </div>
+
+  <div class="card hidden" id="doneCard">
+    <div class="done-title">✅ Gotowe! Twój film ma polski dubbing.</div>
+    <div class="lang" id="langInfo"></div>
+    <div class="dl">
+      <a class="btn primary" id="dlVideo" href="#">⬇️ Pobierz film (MP4)</a>
+      <a class="btn" id="dlSrt" href="#">⬇️ Pobierz napisy (SRT)</a>
+    </div>
+    <button class="again" id="again">← Przetłumacz kolejny film</button>
+  </div>
+
+  <p class="foot">Whisper · Google Translate · Edge TTS · ffmpeg — w 100% darmowe usługi</p>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+let mode = 'url';
+let pollTimer = null;
+
+const LANG_NAMES = { en:'angielski', de:'niemiecki', fr:'francuski', es:'hiszpański',
+  it:'włoski', ru:'rosyjski', uk:'ukraiński', pl:'polski', ja:'japoński', ko:'koreański',
+  zh:'chiński', pt:'portugalski', nl:'niderlandzki', cs:'czeski', sk:'słowacki' };
+
+$('tabUrl').onclick = () => setMode('url');
+$('tabFile').onclick = () => setMode('file');
+function setMode(m) {
+  mode = m;
+  $('tabUrl').classList.toggle('active', m === 'url');
+  $('tabFile').classList.toggle('active', m === 'file');
+  $('paneUrl').classList.toggle('hidden', m !== 'url');
+  $('paneFile').classList.toggle('hidden', m !== 'file');
+}
+
+const drop = $('drop'), fileInput = $('file');
+drop.onclick = () => fileInput.click();
+drop.ondragover = e => { e.preventDefault(); drop.classList.add('drag'); };
+drop.ondragleave = () => drop.classList.remove('drag');
+drop.ondrop = e => {
+  e.preventDefault(); drop.classList.remove('drag');
+  if (e.dataTransfer.files.length) { fileInput.files = e.dataTransfer.files; showFile(); }
+};
+fileInput.onchange = showFile;
+function showFile() {
+  const f = fileInput.files[0];
+  if (f) $('dropText').innerHTML = 'Wybrano: <span class="fname">' + f.name + '</span>';
+}
+
+$('go').onclick = async () => {
+  $('formError').classList.add('hidden');
+  const fd = new FormData();
+  if (mode === 'url') {
+    const u = $('url').value.trim();
+    if (!u) return showFormError('Wklej link do filmu.');
+    fd.append('url', u);
+  } else {
+    const f = fileInput.files[0];
+    if (!f) return showFormError('Wybierz plik wideo.');
+    fd.append('file', f);
+  }
+  fd.append('voice', $('voice').value);
+  fd.append('model_size', $('model').value);
+  fd.append('burn_subtitles', $('burn').checked);
+
+  $('go').disabled = true;
+  try {
+    const res = await fetch('/api/jobs', { method: 'POST', body: fd });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || 'Błąd serwera');
+    showProgress();
+    poll(data.id);
+  } catch (err) {
+    showFormError(err.message);
+    $('go').disabled = false;
+  }
+};
+
+function showFormError(msg) { const el = $('formError'); el.textContent = msg; el.classList.remove('hidden'); }
+
+function showProgress() {
+  $('formCard').classList.add('hidden');
+  $('doneCard').classList.add('hidden');
+  $('progressCard').classList.remove('hidden');
+  $('jobError').classList.add('hidden');
+  $('retry').classList.add('hidden');
+}
+
+function poll(id) {
+  const tick = async () => {
+    try {
+      const res = await fetch('/api/jobs/' + id);
+      const j = await res.json();
+      if (!res.ok) throw new Error(j.detail || 'Błąd serwera');
+      $('bar').style.width = j.progress + '%';
+      $('pct').textContent = Math.round(j.progress) + '%';
+      $('stageLabel').textContent = j.stage_label || 'Przygotowanie...';
+      $('msg').textContent = j.message || '';
+      if (j.status === 'done') return showDone(id, j);
+      if (j.status === 'error') return showError(j.error);
+      pollTimer = setTimeout(tick, 1500);
+    } catch (err) { showError(err.message); }
+  };
+  tick();
+}
+
+function showError(msg) {
+  const el = $('jobError');
+  el.textContent = msg || 'Nieznany błąd.';
+  el.classList.remove('hidden');
+  $('retry').classList.remove('hidden');
+}
+
+$('retry').onclick = $('again')?.onclick = resetForm;
+$('again').onclick = resetForm;
+function resetForm() {
+  clearTimeout(pollTimer);
+  $('progressCard').classList.add('hidden');
+  $('doneCard').classList.add('hidden');
+  $('formCard').classList.remove('hidden');
+  $('go').disabled = false;
+}
+
+function showDone(id, j) {
+  $('progressCard').classList.add('hidden');
+  $('doneCard').classList.remove('hidden');
+  $('dlVideo').href = '/api/jobs/' + id + '/download/video';
+  $('dlSrt').href = '/api/jobs/' + id + '/download/srt';
+  const lang = LANG_NAMES[j.detected_language] || j.detected_language;
+  $('langInfo').textContent = lang ? 'Wykryty język oryginału: ' + lang : '';
+}
+</script>
+</body>
+</html>
