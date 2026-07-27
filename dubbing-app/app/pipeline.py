@@ -151,11 +151,21 @@ def _transcribe_pass(model, wav: Path, total: float, vad_filter: bool,
     return segments, info.language
 
 
-def transcribe(wav: Path, model_size: str, report: ProgressFn) -> tuple[list[Segment], str]:
+def _load_whisper_model(model_size: str):
     from faster_whisper import WhisperModel
 
+    try:
+        import ctranslate2
+        if ctranslate2.get_cuda_device_count() > 0:
+            return WhisperModel(model_size, device="cuda", compute_type="float16")
+    except Exception:
+        pass
+    return WhisperModel(model_size, device="cpu", compute_type="int8")
+
+
+def transcribe(wav: Path, model_size: str, report: ProgressFn) -> tuple[list[Segment], str]:
     report("transcribe", 0, f"Ladowanie modelu Whisper ({model_size})...")
-    model = WhisperModel(model_size, device="cpu", compute_type="int8")
+    model = _load_whisper_model(model_size)
 
     total = max(_ffprobe_duration(wav), 0.01)
 
