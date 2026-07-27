@@ -102,7 +102,12 @@ def download_video(url: str, workdir: Path, report: ProgressFn) -> Path:
 
     opts = {
         "outtmpl": str(workdir / "source.%(ext)s"),
-        "format": "bv*[height<=1080]+ba/b[height<=1080]/b",
+        # Wymuszamy kodek H.264 (avc1) zamiast AV1/VP9, ktore YouTube czesto
+        # serwuje jako "najlepszy" strumien - AV1 nie odtwarza sie poprawnie
+        # (czarny ekran) w wielu odtwarzaczach, skoro dalej kopiujemy
+        # strumien wideo bez przekodowania (-c:v copy w mix_and_mux).
+        "format": ("bv*[vcodec^=avc1][height<=1080]+ba/b[vcodec^=avc1][height<=1080]/"
+                   "bv*[height<=1080]+ba/b[height<=1080]/b"),
         "merge_output_format": "mp4",
         "progress_hooks": [hook],
         "noplaylist": True,
@@ -316,7 +321,9 @@ def mix_and_mux(video: Path, voice_track: Path, srt: Path | None,
     else:
         cmd += ["-map", "0:v", "-map", "[aout]", "-c:v", "copy"]
 
-    cmd += ["-c:a", "aac", "-b:a", "192k", "-shortest", str(out)]
+    # +faststart przenosi atom moov na poczatek pliku, zeby przegladarki i
+    # odtwarzacze mogly zaczac odtwarzanie i przewijac bez pobrania calosci.
+    cmd += ["-c:a", "aac", "-b:a", "192k", "-movflags", "+faststart", "-shortest", str(out)]
     _run(cmd, "Nie udalo sie zlozyc koncowego pliku wideo.")
     report("mix", 100, "Skladanie pliku wyjsciowego...")
     return out
