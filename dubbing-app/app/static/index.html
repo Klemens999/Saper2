@@ -244,7 +244,7 @@ function showError(msg) {
   $('retry').classList.remove('hidden');
 }
 
-$('retry').onclick = $('again')?.onclick = resetForm;
+$('retry').onclick = resetForm;
 $('again').onclick = resetForm;
 function resetForm() {
   clearTimeout(pollTimer);
