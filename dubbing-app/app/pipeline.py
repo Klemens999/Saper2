@@ -137,14 +137,9 @@ def extract_audio_for_asr(video: Path, workdir: Path) -> Path:
     return wav
 
 
-def transcribe(wav: Path, model_size: str, report: ProgressFn) -> tuple[list[Segment], str]:
-    from faster_whisper import WhisperModel
-
-    report("transcribe", 0, f"Ladowanie modelu Whisper ({model_size})...")
-    model = WhisperModel(model_size, device="cpu", compute_type="int8")
-
-    total = max(_ffprobe_duration(wav), 0.01)
-    raw_segments, info = model.transcribe(str(wav), vad_filter=True)
+def _transcribe_pass(model, wav: Path, total: float, vad_filter: bool,
+                     report: ProgressFn) -> tuple[list[Segment], str]:
+    raw_segments, info = model.transcribe(str(wav), vad_filter=vad_filter)
 
     segments: list[Segment] = []
     for seg in raw_segments:
@@ -153,10 +148,28 @@ def transcribe(wav: Path, model_size: str, report: ProgressFn) -> tuple[list[Seg
             segments.append(Segment(start=seg.start, end=seg.end, text=text))
         report("transcribe", min(100.0, 100.0 * seg.end / total),
                "Transkrypcja mowy...")
+    return segments, info.language
+
+
+def transcribe(wav: Path, model_size: str, report: ProgressFn) -> tuple[list[Segment], str]:
+    from faster_whisper import WhisperModel
+
+    report("transcribe", 0, f"Ladowanie modelu Whisper ({model_size})...")
+    model = WhisperModel(model_size, device="cpu", compute_type="int8")
+
+    total = max(_ffprobe_duration(wav), 0.01)
+
+    # Filtr VAD (wykrywanie aktywnosci glosowej) potrafi blednie uznac spiew
+    # z podkladem muzycznym za brak mowy, wiec przy pustym wyniku probujemy
+    # jeszcze raz bez niego, zanim zglosimy blad.
+    segments, language = _transcribe_pass(model, wav, total, True, report)
+    if not segments:
+        report("transcribe", 0, "Nie wykryto mowy z filtrem VAD - probuje bez niego...")
+        segments, language = _transcribe_pass(model, wav, total, False, report)
 
     if not segments:
         raise PipelineError("Nie wykryto mowy w filmie - nie ma czego dubbingowac.")
-    return segments, info.language
+    return segments, language
 
 
 # ---------------------------------------------------------------------------
