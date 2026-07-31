@@ -25,10 +25,19 @@ VOICES = {
 
 WHISPER_MODELS = {"tiny", "base", "small", "medium", "large-v3"}
 
-# Maksymalne przyspieszenie polskiej kwestii, zeby zmiescila sie w slocie
-# czasowym oryginalnej wypowiedzi. Powyzej tej wartosci mowa robi sie
-# nienaturalna, wiec pozwalamy kwestii wystawac poza slot.
-MAX_TEMPO = 1.9
+# Tryb lektora: kwestie czytane sa jedna po drugiej w naturalnym tempie
+# (bez wymuszania dopasowania do slotu czasowego oryginalnej wypowiedzi, co
+# przy dawnym podejsciu "lip-sync" powodowalo mocne przyspieszanie i brzmialo
+# sztucznie). Przyspieszenie stosujemy tylko lagodnie i tylko wtedy, gdy
+# lektor realnie zaczyna zalegac za oryginalna sciezka czasowa.
+LEKTOR_MAX_TEMPO = 1.15
+# Od ilu sekund zalegania zaczynamy lagodnie doganiac oryginalna sciezke.
+LEKTOR_DRIFT_THRESHOLD = 2.0
+# Zakres (w sekundach), na ktorym przyspieszenie narasta od 1.0 do
+# LEKTOR_MAX_TEMPO - dzieki temu korekta jest plynna, a nie skokowa.
+LEKTOR_DRIFT_RAMP = 8.0
+# Naturalna przerwa oddechowa miedzy kolejnymi kwestiami lektora.
+LEKTOR_MIN_GAP = 0.12
 
 
 @dataclass
@@ -38,6 +47,7 @@ class Segment:
     text: str
     text_pl: str = ""
     audio_path: Path | None = None
+    audio_start: float | None = None
 
 
 @dataclass
@@ -231,7 +241,7 @@ async def _tts_one(text: str, voice: str, out_mp3: Path) -> None:
 
 
 def synthesize_segments(segments: list[Segment], voice_key: str, workdir: Path,
-                        total_duration: float, report: ProgressFn) -> None:
+                        total_duration: float, report: ProgressFn) -> float:
     from pydub import AudioSegment
 
     voice = VOICES.get(voice_key, VOICES["marek"])
@@ -239,6 +249,8 @@ def synthesize_segments(segments: list[Segment], voice_key: str, workdir: Path,
     tts_dir.mkdir(exist_ok=True)
 
     loop = asyncio.new_event_loop()
+    cursor = 0.0
+    track_end = total_duration
     try:
         for idx, seg in enumerate(segments):
             if not seg.text_pl:
@@ -251,13 +263,15 @@ def synthesize_segments(segments: list[Segment], voice_key: str, workdir: Path,
                 raise PipelineError(
                     f"Blad syntezy mowy (Edge TTS) dla fragmentu {idx + 1}: {exc}")
 
-            tts_len = len(AudioSegment.from_file(mp3)) / 1000.0
+            natural_len = len(AudioSegment.from_file(mp3)) / 1000.0
 
-            # Slot konczy sie na poczatku nastepnej wypowiedzi (albo na koncu
-            # filmu), zeby kwestie nie nachodzily na siebie.
-            slot_end = segments[idx + 1].start if idx + 1 < len(segments) else total_duration
-            slot = max(slot_end - seg.start, 0.5)
-            tempo = min(max(tts_len / slot, 1.0), MAX_TEMPO)
+            # Lektor czyta kwestie jedna po drugiej, we wlasnym naturalnym
+            # tempie - nie czeka, az oryginalna postac zacznie mowic, ale tez
+            # nie moze nachodzic na poprzednia kwestie.
+            start = max(seg.start, cursor)
+            drift = start - seg.start
+            ramp = min(max(drift - LEKTOR_DRIFT_THRESHOLD, 0.0) / LEKTOR_DRIFT_RAMP, 1.0)
+            tempo = 1.0 + ramp * (LEKTOR_MAX_TEMPO - 1.0)
 
             filters = f"atempo={tempo:.3f}" if tempo > 1.01 else "anull"
             _run(
@@ -265,11 +279,18 @@ def synthesize_segments(segments: list[Segment], voice_key: str, workdir: Path,
                  "-ac", "2", "-ar", "44100", str(wav)],
                 f"Nie udalo sie przetworzyc audio fragmentu {idx + 1}.",
             )
+
+            actual_len = natural_len / tempo
             seg.audio_path = wav
+            seg.audio_start = start
+            cursor = start + actual_len + LEKTOR_MIN_GAP
+            track_end = max(track_end, start + actual_len)
             report("tts", 100.0 * (idx + 1) / len(segments),
                    f"Generowanie polskiego glosu ({idx + 1}/{len(segments)})...")
     finally:
         loop.close()
+
+    return track_end
 
 
 def build_voice_track(segments: list[Segment], total_duration: float, workdir: Path) -> Path:
@@ -280,7 +301,7 @@ def build_voice_track(segments: list[Segment], total_duration: float, workdir: P
         if seg.audio_path is None:
             continue
         clip = AudioSegment.from_file(seg.audio_path)
-        track = track.overlay(clip, position=int(seg.start * 1000))
+        track = track.overlay(clip, position=int((seg.audio_start or seg.start) * 1000))
 
     out = workdir / "voice_track.wav"
     track.export(out, format="wav")
@@ -388,8 +409,8 @@ def run_pipeline(workdir: Path, report: ProgressFn, *,
     srt = write_srt(segments, workdir / "napisy_pl.srt")
 
     report("tts", 0, "Generowanie polskiego glosu...")
-    synthesize_segments(segments, voice, workdir, total_duration, report)
-    voice_track = build_voice_track(segments, total_duration, workdir)
+    track_duration = synthesize_segments(segments, voice, workdir, total_duration, report)
+    voice_track = build_voice_track(segments, track_duration, workdir)
 
     output = mix_and_mux(video, voice_track, srt, workdir, burn_subtitles, report)
 
