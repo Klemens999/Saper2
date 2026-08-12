@@ -1,0 +1,147 @@
+{
+  "meta": {
+    "status": "PLACEHOLDER",
+    "note": "Wszystkie wymiary są zmyślone do czasu dostarczenia pomiarów. Po podaniu realnych danych podmień wartości w tym pliku i uruchom build_plan.py.",
+    "units": "cm",
+    "coordinates": "Origin (0,0) = północno-zachodni narożnik. x rośnie na wschód, y rośnie na południe. Ściany: N=y0, S=y max, W=x0, E=x max. 'offset' liczony wzdłuż ściany od narożnika N lub W."
+  },
+
+  "room": {
+    "width": 340,
+    "depth": 420,
+    "height": 260,
+    "windowFacing": "?"
+  },
+
+  "openings": [
+    {
+      "id": "window",
+      "type": "window",
+      "label": "Okno",
+      "wall": "N",
+      "offset": 100,
+      "width": 150,
+      "sillHeight": 90,
+      "height": 150
+    },
+    {
+      "id": "door",
+      "type": "door",
+      "label": "Drzwi",
+      "wall": "S",
+      "offset": 30,
+      "width": 90,
+      "swing": "in",
+      "hinge": "left"
+    }
+  ],
+
+  "fixtures": [
+    { "id": "rad", "type": "radiator", "label": "Grzejnik", "wall": "N", "offset": 110, "width": 130, "depth": 12 },
+    { "id": "s1", "type": "socket", "label": "Gniazdko 230V", "wall": "N", "offset": 270 },
+    { "id": "s2", "type": "socket", "label": "Gniazdko 230V", "wall": "E", "offset": 90 },
+    { "id": "s3", "type": "socket", "label": "Gniazdko 230V", "wall": "S", "offset": 250 },
+    { "id": "s4", "type": "socket", "label": "Gniazdko 230V", "wall": "W", "offset": 300 },
+    { "id": "s5", "type": "socket", "label": "Gniazdko 230V", "wall": "W", "offset": 120 },
+    { "id": "net", "type": "network", "label": "Gniazdo LAN", "wall": "E", "offset": 95 },
+    { "id": "sw", "type": "switch", "label": "Włącznik światła", "wall": "S", "offset": 135 }
+  ],
+
+  "furniture": [
+    { "id": "bed",      "label": "Łóżko",        "w": 90,  "d": 200, "owned": true, "zone": "sleep",  "needsPower": false },
+    { "id": "desk",     "label": "Biurko",       "w": 140, "d": 60,  "owned": true, "zone": "work",   "needsPower": true },
+    { "id": "chair",    "label": "Krzesło",      "w": 55,  "d": 55,  "owned": true, "zone": "work",   "needsPower": false },
+    { "id": "pc",       "label": "Komputer",     "w": 25,  "d": 50,  "owned": true, "zone": "work",   "needsPower": true },
+    { "id": "wardrobe", "label": "Szafa",        "w": 150, "d": 60,  "owned": true, "zone": "store",  "needsPower": false, "doorSwing": 90 },
+    { "id": "dresser",  "label": "Komoda",       "w": 80,  "d": 45,  "owned": true, "zone": "store",  "needsPower": false },
+    { "id": "shelf",    "label": "Regał",        "w": 80,  "d": 30,  "owned": true, "zone": "store",  "needsPower": false },
+    { "id": "armchair", "label": "Fotel",        "w": 70,  "d": 75,  "owned": true, "zone": "relax",  "needsPower": false }
+  ],
+
+  "zones": {
+    "sleep": { "label": "Spanie",          "color": "#7c86d6" },
+    "work":  { "label": "Praca / gaming",  "color": "#4f9d7a" },
+    "relax": { "label": "Relaks / kino",   "color": "#c98a3e" },
+    "store": { "label": "Przechowywanie",  "color": "#8a8f99" },
+    "hobby": { "label": "Hobby (pop-up)",  "color": "#b5619b" }
+  },
+
+  "layouts": [
+    {
+      "id": "before",
+      "name": "PRZED",
+      "summary": "Stan obecny — do potwierdzenia na zdjęciach. Wszystko dosunięte do ścian, biurko twarzą do ściany, łóżko blokuje dostęp do okna, brak wydzielonej strefy relaksu.",
+      "issues": [
+        "Biurko tyłem do pokoju i twarzą do ściany — brak światła dziennego na blat.",
+        "Zero wolnej podłogi na hobby / matę.",
+        "Fotel stoi w środku pokoju i przecina główne przejście."
+      ],
+      "placements": [
+        { "ref": "bed",      "x": 50,  "y": 105,  "rot": 0 },
+        { "ref": "desk",     "x": 310, "y": 120,  "rot": 90 },
+        { "ref": "chair",    "x": 245, "y": 120,  "rot": 90 },
+        { "ref": "pc",       "x": 315, "y": 220,  "rot": 0 },
+        { "ref": "wardrobe", "x": 255, "y": 385,  "rot": 0 },
+        { "ref": "dresser",  "x": 295, "y": 22.5, "rot": 0 },
+        { "ref": "shelf",    "x": 20,  "y": 250,  "rot": 90 },
+        { "ref": "armchair", "x": 170, "y": 300,  "rot": 0 }
+      ],
+      "hobbyArea": null
+    },
+
+    {
+      "id": "A",
+      "name": "Wariant A — pas roboczy na zachodzie",
+      "summary": "Cała ściana zachodnia to jeden pion funkcjonalny: biurko przy oknie, regał, szafa. Łóżko przenosi się na wschód. Środek pokoju zostaje pusty — to jest strefa hobby.",
+      "rationale": [
+        "Biurko prostopadle do okna — światło pada z prawej strony, bez odbić w monitorze.",
+        "Łóżko wezgłowiem do południa, dostęp z jednej strony pełne 100+ cm.",
+        "Główne przejście od drzwi na północ ma ~180 cm szerokości.",
+        "Regał musiał wylądować na ścianie wschodniej — biurko + szafa + regał (370 cm) nie mieszczą się na zachodniej przed łukiem drzwi (327 cm).",
+        "Fotel zszedł na południe, przy strefie hobby: postawiony pod oknem tworzył 50-cm gardło między nim a komodą. Kontrola przejść to wyłapała."
+      ],
+      "placements": [
+        { "ref": "desk",     "x": 35,  "y": 80,   "rot": 90 },
+        { "ref": "chair",    "x": 100, "y": 80,   "rot": 90 },
+        { "ref": "pc",       "x": 80,  "y": 25,   "rot": 0 },
+        { "ref": "shelf",    "x": 325, "y": 110,  "rot": 90 },
+        { "ref": "wardrobe", "x": 35,  "y": 250,  "rot": 90 },
+        { "ref": "bed",      "x": 290, "y": 310,  "rot": 0 },
+        { "ref": "dresser",  "x": 295, "y": 22.5, "rot": 0 },
+        { "ref": "armchair", "x": 170, "y": 380,  "rot": 0 }
+      ],
+      "hobbyArea": { "x": 90, "y": 190, "w": 140, "d": 140 }
+    },
+
+    {
+      "id": "B",
+      "name": "Wariant B — sen na zachodzie, praca na wschodzie",
+      "summary": "Rozdzielenie funkcji na dwie przeciwległe ściany: spanie po zachodniej, praca/gaming po wschodniej przy oknie. Przechowywanie zbiera się na ścianie południowej, przy wejściu.",
+      "rationale": [
+        "Największy fizyczny dystans między łóżkiem a biurkiem — najlepsze dla higieny snu przy pracy w tym samym pokoju.",
+        "Biurko przy oknie po stronie wschodniej, okno po lewej ręce.",
+        "Szafa przy drzwiach — ubierasz się przy wyjściu, nie chodzisz przez cały pokój.",
+        "Wada: strefa hobby jest węższa niż w wariancie A."
+      ],
+      "placements": [
+        { "ref": "bed",      "x": 50,  "y": 110, "rot": 0 },
+        { "ref": "desk",     "x": 305, "y": 90,  "rot": 90 },
+        { "ref": "chair",    "x": 240, "y": 90,  "rot": 90 },
+        { "ref": "pc",       "x": 320, "y": 190, "rot": 0 },
+        { "ref": "dresser",  "x": 312, "y": 265, "rot": 90 },
+        { "ref": "wardrobe", "x": 262, "y": 385, "rot": 0 },
+        { "ref": "shelf",    "x": 20,  "y": 270, "rot": 90 },
+        { "ref": "armchair", "x": 200, "y": 190, "rot": 0 }
+      ],
+      "hobbyArea": { "x": 110, "y": 250, "w": 120, "d": 100 }
+    }
+  ],
+
+  "rules": {
+    "corridorMin": 60,
+    "mainCorridorMin": 75,
+    "wardrobeClearance": 90,
+    "bedAccessMin": 60,
+    "deskPullout": 75
+  }
+}

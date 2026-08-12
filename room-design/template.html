@@ -1,0 +1,681 @@
+<title>Rzut pokoju</title>
+
+<style>
+  :root {
+    --bg: #f7f6f3;
+    --panel: #ffffff;
+    --ink: #1c1b19;
+    --ink-soft: #5c5952;
+    --ink-faint: #8b8780;
+    --line: #ded9d0;
+    --line-strong: #b9b2a6;
+    --accent: #b25f34;
+    --ok: #3f7d54;
+    --warn: #a8761c;
+    --bad: #b3402f;
+    --floor: #efece5;
+    --wall: #34322e;
+    --grid: #e2ddd3;
+    --reach: #3f7d54;
+    --shadow: 0 1px 2px rgba(28,27,25,.06), 0 8px 24px rgba(28,27,25,.06);
+  }
+  :root:not([data-theme="light"]) {
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #16151a;
+      --panel: #1e1d23;
+      --ink: #ece9e3;
+      --ink-soft: #a9a49b;
+      --ink-faint: #7b766e;
+      --line: #33313a;
+      --line-strong: #4b4854;
+      --accent: #e08a5a;
+      --ok: #6bbd88;
+      --warn: #d9a63f;
+      --bad: #e07a67;
+      --floor: #26242c;
+      --wall: #c9c4bb;
+      --grid: #2e2c35;
+      --reach: #6bbd88;
+      --shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 24px rgba(0,0,0,.3);
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #16151a;
+    --panel: #1e1d23;
+    --ink: #ece9e3;
+    --ink-soft: #a9a49b;
+    --ink-faint: #7b766e;
+    --line: #33313a;
+    --line-strong: #4b4854;
+    --accent: #e08a5a;
+    --ok: #6bbd88;
+    --warn: #d9a63f;
+    --bad: #e07a67;
+    --floor: #26242c;
+    --wall: #c9c4bb;
+    --grid: #2e2c35;
+    --reach: #6bbd88;
+    --shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 24px rgba(0,0,0,.3);
+    color-scheme: dark;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font: 15px/1.6 ui-sans-serif, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+    margin: 0;
+    padding: 32px 20px 80px;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 1080px; margin: 0 auto; }
+
+  header.top { margin-bottom: 28px; }
+  h1 { font-size: 30px; line-height: 1.15; margin: 0 0 6px; letter-spacing: -.02em; }
+  .sub { color: var(--ink-soft); margin: 0; }
+
+  .banner {
+    margin: 20px 0 0; padding: 12px 16px; border-radius: 10px;
+    background: color-mix(in srgb, var(--warn) 12%, var(--panel));
+    border: 1px solid color-mix(in srgb, var(--warn) 40%, transparent);
+    color: var(--ink); font-size: 14px;
+  }
+  .banner strong { color: var(--warn); }
+
+  .controls {
+    display: flex; flex-wrap: wrap; gap: 10px; align-items: center;
+    margin: 24px 0 16px;
+  }
+  .tabs { display: flex; flex-wrap: wrap; gap: 6px; }
+  button.tab {
+    font: inherit; font-size: 14px; cursor: pointer;
+    background: var(--panel); color: var(--ink-soft);
+    border: 1px solid var(--line); border-radius: 8px;
+    padding: 7px 13px; transition: .12s;
+  }
+  button.tab:hover { border-color: var(--line-strong); color: var(--ink); }
+  button.tab[aria-pressed="true"] {
+    background: var(--ink); color: var(--bg); border-color: var(--ink);
+  }
+  .toggles { display: flex; flex-wrap: wrap; gap: 14px; margin-left: auto; font-size: 13px; color: var(--ink-soft); }
+  .toggles label { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; user-select: none; }
+  .toggles input { accent-color: var(--accent); }
+
+  .card {
+    background: var(--panel); border: 1px solid var(--line);
+    border-radius: 14px; box-shadow: var(--shadow);
+    padding: 20px; margin-bottom: 20px;
+  }
+  .plan-scroll { overflow-x: auto; }
+  svg.plan { display: block; margin: 0 auto; max-width: 100%; height: auto; }
+
+  h2 { font-size: 19px; margin: 0 0 10px; letter-spacing: -.01em; }
+  h3 { font-size: 14px; text-transform: uppercase; letter-spacing: .07em; color: var(--ink-faint); margin: 0 0 10px; font-weight: 600; }
+  p.summary { margin: 0 0 14px; color: var(--ink-soft); }
+  ul { margin: 0; padding-left: 20px; }
+  li { margin-bottom: 6px; }
+
+  .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  @media (max-width: 760px) { .cols { grid-template-columns: 1fr; } }
+
+  .legend { display: flex; flex-wrap: wrap; gap: 8px 18px; font-size: 13px; color: var(--ink-soft); margin-top: 14px; }
+  .legend span { display: inline-flex; align-items: center; gap: 7px; }
+  .sw { width: 13px; height: 13px; border-radius: 3px; display: inline-block; border: 1px solid rgba(128,128,128,.35); }
+
+  .check { display: flex; gap: 10px; align-items: flex-start; padding: 9px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
+  .check:last-child { border-bottom: 0; }
+  .dot { flex: 0 0 auto; width: 8px; height: 8px; border-radius: 50%; margin-top: 8px; }
+  .ok   .dot { background: var(--ok); }
+  .warn .dot { background: var(--warn); }
+  .bad  .dot { background: var(--bad); }
+  .check .label { flex: 1; }
+  .check .val { color: var(--ink-faint); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .ok .val { color: var(--ok); }
+  .warn .val { color: var(--warn); }
+  .bad .val { color: var(--bad); }
+
+  .metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 14px; margin-bottom: 18px; }
+  .metric { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
+  .metric .k { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--ink-faint); }
+  .metric .v { font-size: 24px; font-weight: 600; letter-spacing: -.02em; font-variant-numeric: tabular-nums; margin-top: 2px; }
+  .metric .u { font-size: 14px; font-weight: 400; color: var(--ink-faint); }
+
+  footer { color: var(--ink-faint); font-size: 13px; margin-top: 36px; text-align: center; }
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <h1>Rzut pokoju — przed i po</h1>
+    <p class="sub">Rysunek w skali, generowany z <code>room.json</code>. Kontrola przejść liczona automatycznie z geometrii, nie na oko.</p>
+    <div class="banner" id="banner" hidden></div>
+  </header>
+
+  <div class="controls">
+    <div class="tabs" id="tabs"></div>
+    <div class="toggles">
+      <label><input type="checkbox" id="t-grid" checked> siatka 50 cm</label>
+      <label><input type="checkbox" id="t-zones" checked> strefy</label>
+      <label><input type="checkbox" id="t-power" checked> gniazdka</label>
+      <label><input type="checkbox" id="t-reach"> analiza przejść</label>
+    </div>
+  </div>
+
+  <div class="card plan-scroll">
+    <svg class="plan" id="plan" role="img" aria-label="Rzut pokoju z góry"></svg>
+    <div class="legend" id="legend"></div>
+  </div>
+
+  <div class="metrics" id="metrics"></div>
+
+  <div class="cols">
+    <div class="card">
+      <h2 id="layout-name"></h2>
+      <p class="summary" id="layout-summary"></p>
+      <h3 id="notes-head"></h3>
+      <ul id="layout-notes"></ul>
+    </div>
+    <div class="card">
+      <h2>Kontrola ergonomii</h2>
+      <div id="checks"></div>
+    </div>
+  </div>
+
+  <footer id="foot"></footer>
+</div>
+
+<script id="room-data" type="application/json">
+/*__ROOM_DATA__*/
+</script>
+
+<script>
+(function () {
+  "use strict";
+
+  const DATA = JSON.parse(document.getElementById("room-data").textContent);
+  const R = DATA.room, RULES = DATA.rules, ZONES = DATA.zones;
+  const FURN = Object.fromEntries(DATA.furniture.map(f => [f.id, f]));
+  const CELL = 5;                 // cm — rozdzielczość siatki analitycznej
+  const PERSON_R = 30;            // cm — połowa szerokości barków
+  const SQRT2 = Math.SQRT2;
+
+  /* ---------- geometria ---------- */
+
+  function rectOf(p) {
+    const f = FURN[p.ref];
+    if (!f) return null;
+    const rot = ((p.rot || 0) % 360 + 360) % 360;
+    const swap = rot === 90 || rot === 270;
+    const w = swap ? f.d : f.w;
+    const d = swap ? f.w : f.d;
+    return { x: p.x - w / 2, y: p.y - d / 2, w, d, f, rot };
+  }
+
+  // punkt na ścianie -> współrzędne podłogi
+  function wallPoint(wall, off) {
+    if (wall === "N") return { x: off, y: 0 };
+    if (wall === "S") return { x: off, y: R.depth };
+    if (wall === "W") return { x: 0, y: off };
+    return { x: R.width, y: off };
+  }
+
+  // prostokąt przylegający do ściany (grzejnik, otwór)
+  function wallRect(wall, off, len, depth) {
+    if (wall === "N") return { x: off, y: 0, w: len, d: depth };
+    if (wall === "S") return { x: off, y: R.depth - depth, w: len, d: depth };
+    if (wall === "W") return { x: 0, y: off, w: depth, d: len };
+    return { x: R.width - depth, y: off, w: depth, d: len };
+  }
+
+  function overlap(a, b) {
+    const ox = Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x);
+    const oy = Math.min(a.y + a.d, b.y + b.d) - Math.max(a.y, b.y);
+    return ox > 1 && oy > 1 ? { ox, oy } : null;
+  }
+
+  function distPointRect(px, py, r) {
+    const dx = Math.max(r.x - px, 0, px - (r.x + r.w));
+    const dy = Math.max(r.y - py, 0, py - (r.y + r.d));
+    return Math.hypot(dx, dy);
+  }
+
+  const RAD = DATA.fixtures.filter(f => f.type === "radiator")
+    .map(f => Object.assign(wallRect(f.wall, f.offset, f.width, f.depth), { label: f.label }));
+  const SOCKETS = DATA.fixtures.filter(f => f.type === "socket" || f.type === "network")
+    .map(f => Object.assign(wallPoint(f.wall, f.offset), { type: f.type, label: f.label }));
+  const DOOR = DATA.openings.find(o => o.type === "door");
+  const WINDOWS = DATA.openings.filter(o => o.type === "window");
+
+  // sektor otwierania drzwi jako lista punktów (wielokąt)
+  function doorSwingPoly() {
+    if (!DOOR || DOOR.swing !== "in") return null;
+    const a = wallPoint(DOOR.wall, DOOR.offset);
+    const b = wallPoint(DOOR.wall, DOOR.offset + DOOR.width);
+    const hinge = DOOR.hinge === "left" ? a : b;
+    const leaf = DOOR.hinge === "left" ? b : a;
+    // wektor do wnętrza pokoju
+    const inward = { N: [0, 1], S: [0, -1], W: [1, 0], E: [-1, 0] }[DOOR.wall];
+    const r = DOOR.width;
+    const start = Math.atan2(leaf.y - hinge.y, leaf.x - hinge.x);
+    const endTarget = Math.atan2(inward[1], inward[0]);
+    let delta = endTarget - start;
+    while (delta > Math.PI) delta -= 2 * Math.PI;
+    while (delta < -Math.PI) delta += 2 * Math.PI;
+    const pts = [[hinge.x, hinge.y]];
+    for (let i = 0; i <= 12; i++) {
+      const t = start + delta * (i / 12);
+      pts.push([hinge.x + r * Math.cos(t), hinge.y + r * Math.sin(t)]);
+    }
+    return { pts, hinge, r, start, delta };
+  }
+  const SWING = doorSwingPoly();
+
+  function pointInPoly(px, py, pts) {
+    let inside = false;
+    for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) {
+      const xi = pts[i][0], yi = pts[i][1], xj = pts[j][0], yj = pts[j][1];
+      if ((yi > py) !== (yj > py) && px < ((xj - xi) * (py - yi)) / (yj - yi) + xi) inside = !inside;
+    }
+    return inside;
+  }
+
+  /* ---------- analiza siatkowa: transformata odległości + BFS od drzwi ---------- */
+
+  function analyze(placements) {
+    const cols = Math.ceil(R.width / CELL), rows = Math.ceil(R.depth / CELL);
+    const blocked = new Uint8Array(cols * rows);
+    const rects = placements.map(rectOf).filter(Boolean);
+
+    for (let gy = 0; gy < rows; gy++) {
+      for (let gx = 0; gx < cols; gx++) {
+        const cx = gx * CELL + CELL / 2, cy = gy * CELL + CELL / 2;
+        // Uwaga: łuk otwierania drzwi NIE blokuje chodzenia — przez otwarte drzwi
+        // się przechodzi. Kolizja mebla z łukiem jest sprawdzana osobno w runChecks.
+        let hit = false;
+        for (const r of rects) {
+          if (cx > r.x && cx < r.x + r.w && cy > r.y && cy < r.y + r.d) { hit = true; break; }
+        }
+        blocked[gy * cols + gx] = hit ? 1 : 0;
+      }
+    }
+
+    // chamfer distance transform (w cm) — odległość wolnej komórki od najbliższej przeszkody/ściany
+    const INF = 1e9;
+    const dist = new Float32Array(cols * rows);
+    for (let i = 0; i < dist.length; i++) dist[i] = blocked[i] ? 0 : INF;
+    const at = (x, y) => (x < 0 || y < 0 || x >= cols || y >= rows) ? 0 : dist[y * cols + x];
+    for (let y = 0; y < rows; y++) for (let x = 0; x < cols; x++) {
+      const i = y * cols + x;
+      if (!dist[i]) continue;
+      dist[i] = Math.min(dist[i], at(x - 1, y) + 1, at(x, y - 1) + 1,
+        at(x - 1, y - 1) + SQRT2, at(x + 1, y - 1) + SQRT2);
+    }
+    for (let y = rows - 1; y >= 0; y--) for (let x = cols - 1; x >= 0; x--) {
+      const i = y * cols + x;
+      if (!dist[i]) continue;
+      dist[i] = Math.min(dist[i], at(x + 1, y) + 1, at(x, y + 1) + 1,
+        at(x + 1, y + 1) + SQRT2, at(x - 1, y + 1) + SQRT2);
+    }
+    for (let i = 0; i < dist.length; i++) dist[i] = Math.min(dist[i], 1e6) * CELL;
+
+    // BFS po komórkach przejezdnych dla osoby o promieniu r, start przy drzwiach
+    function reachable(r) {
+      const pass = i => dist[i] >= r;
+      const seen = new Uint8Array(cols * rows);
+      const queue = [];
+      if (DOOR) {
+        for (let gy = 0; gy < rows; gy++) for (let gx = 0; gx < cols; gx++) {
+          const cx = gx * CELL + CELL / 2, cy = gy * CELL + CELL / 2;
+          const p = wallPoint(DOOR.wall, DOOR.offset);
+          const q = wallPoint(DOOR.wall, DOOR.offset + DOOR.width);
+          const inSpan = (DOOR.wall === "N" || DOOR.wall === "S")
+            ? (cx >= Math.min(p.x, q.x) && cx <= Math.max(p.x, q.x))
+            : (cy >= Math.min(p.y, q.y) && cy <= Math.max(p.y, q.y));
+          const nearWall = Math.min(distPointRect(cx, cy, { x: p.x, y: p.y, w: Math.abs(q.x - p.x) || 1, d: Math.abs(q.y - p.y) || 1 })) <= r + CELL * 2;
+          const i = gy * cols + gx;
+          if (inSpan && nearWall && pass(i) && !seen[i]) { seen[i] = 1; queue.push(i); }
+        }
+      }
+      for (let h = 0; h < queue.length; h++) {
+        const i = queue[h], x = i % cols, y = (i / cols) | 0;
+        for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+          const nx = x + dx, ny = y + dy;
+          if (nx < 0 || ny < 0 || nx >= cols || ny >= rows) continue;
+          const ni = ny * cols + nx;
+          if (!seen[ni] && pass(ni)) { seen[ni] = 1; queue.push(ni); }
+        }
+      }
+      return { seen, count: queue.length };
+    }
+
+    // czy przy promieniu r da się podejść do wszystkich mebli?
+    function allReached(seen) {
+      for (const r of rects) {
+        let ok = false;
+        for (let gy = 0; gy < rows && !ok; gy++) for (let gx = 0; gx < cols; gx++) {
+          if (!seen[gy * cols + gx]) continue;
+          const cx = gx * CELL + CELL / 2, cy = gy * CELL + CELL / 2;
+          if (distPointRect(cx, cy, r) <= 45) { ok = true; break; }
+        }
+        if (!ok) return false;
+      }
+      return true;
+    }
+
+    // najszersze przejście, przy którym cały pokój pozostaje obsługiwalny
+    let best = 0, bestSeen = reachable(PERSON_R).seen;
+    for (let r = 15; r <= 60; r += 2.5) {
+      const res = reachable(r);
+      if (res.count > 0 && allReached(res.seen)) best = r; else break;
+    }
+
+    return { cols, rows, dist, blocked, rects, corridor: best * 2, reachSeen: bestSeen, reachAt: reachable(PERSON_R) };
+  }
+
+  /* ---------- kontrola zasad ---------- */
+
+  function runChecks(layout, an) {
+    const out = [];
+    const rects = an.rects;
+    const add = (level, label, val) => out.push({ level, label, val });
+
+    // 1. kolizje mebli
+    const cols = [];
+    for (let i = 0; i < rects.length; i++)
+      for (let j = i + 1; j < rects.length; j++)
+        if (overlap(rects[i], rects[j])) cols.push(rects[i].f.label + " × " + rects[j].f.label);
+    add(cols.length ? "bad" : "ok", cols.length ? "Meble na sobie: " + cols.join(", ") : "Brak kolizji między meblami",
+      cols.length ? cols.length + "×" : "OK");
+
+    // 2. poza obrysem pokoju
+    const outside = rects.filter(r => r.x < -1 || r.y < -1 || r.x + r.w > R.width + 1 || r.y + r.d > R.depth + 1);
+    add(outside.length ? "bad" : "ok",
+      outside.length ? "Wychodzi poza pokój: " + outside.map(r => r.f.label).join(", ") : "Wszystko mieści się w obrysie",
+      outside.length ? outside.length + "×" : "OK");
+
+    // 3. grzejnik
+    const onRad = [];
+    for (const rad of RAD) for (const r of rects) if (overlap(rad, r)) onRad.push(r.f.label);
+    add(onRad.length ? "warn" : "ok",
+      onRad.length ? "Zasłonięty grzejnik: " + [...new Set(onRad)].join(", ") : "Grzejnik odsłonięty",
+      onRad.length ? "kolizja" : "OK");
+
+    // 4. otwieranie drzwi
+    let doorHit = [];
+    if (SWING) for (const r of rects) {
+      const step = 5;
+      let hit = false;
+      for (let px = r.x + 2; px < r.x + r.w && !hit; px += step)
+        for (let py = r.y + 2; py < r.y + r.d; py += step)
+          if (pointInPoly(px, py, SWING.pts)) { hit = true; break; }
+      if (hit) doorHit.push(r.f.label);
+    }
+    add(doorHit.length ? "bad" : "ok",
+      doorHit.length ? "Blokuje otwieranie drzwi: " + doorHit.join(", ") : "Drzwi otwierają się swobodnie",
+      doorHit.length ? "kolizja" : "OK");
+
+    // 5. szerokość przejść
+    const c = an.corridor;
+    add(c >= RULES.mainCorridorMin ? "ok" : c >= RULES.corridorMin ? "warn" : "bad",
+      "Najwęższe miejsce na trasie od drzwi do każdego mebla" +
+      (c >= RULES.mainCorridorMin ? "" : " (min. " + RULES.corridorMin + " cm)"),
+      c ? Math.round(c) + " cm" : "brak dojścia");
+
+    // 6. dostęp do łóżka z boku
+    const bed = rects.find(r => r.f.id === "bed");
+    if (bed) {
+      const gaps = [bed.x, R.width - (bed.x + bed.w), bed.y, R.depth - (bed.y + bed.d)];
+      // najlepszy wolny bok: sprawdzamy przestrzeń wolną od innych mebli
+      let bestSide = 0;
+      const sides = [
+        { x: bed.x - RULES.bedAccessMin, y: bed.y, w: RULES.bedAccessMin, d: bed.d, avail: bed.x },
+        { x: bed.x + bed.w, y: bed.y, w: RULES.bedAccessMin, d: bed.d, avail: R.width - (bed.x + bed.w) },
+        { x: bed.x, y: bed.y - RULES.bedAccessMin, w: bed.w, d: RULES.bedAccessMin, avail: bed.y },
+        { x: bed.x, y: bed.y + bed.d, w: bed.w, d: RULES.bedAccessMin, avail: R.depth - (bed.y + bed.d) }
+      ];
+      for (const s of sides) {
+        if (s.avail < 20) continue;
+        const blockedBy = rects.some(r => r !== bed && overlap(s, r));
+        if (!blockedBy) bestSide = Math.max(bestSide, Math.min(s.avail, RULES.bedAccessMin + 40));
+      }
+      add(bestSide >= RULES.bedAccessMin ? "ok" : "warn",
+        "Wolny dostęp do łóżka z boku (min. " + RULES.bedAccessMin + " cm)",
+        Math.round(bestSide) + " cm");
+    }
+
+    // 7. miejsce przed szafą
+    const wd = rects.find(r => r.f.id === "wardrobe");
+    if (wd) {
+      const need = RULES.wardrobeClearance;
+      const opts = [
+        { x: wd.x - need, y: wd.y, w: need, d: wd.d, avail: wd.x },
+        { x: wd.x + wd.w, y: wd.y, w: need, d: wd.d, avail: R.width - (wd.x + wd.w) },
+        { x: wd.x, y: wd.y - need, w: wd.w, d: need, avail: wd.y },
+        { x: wd.x, y: wd.y + wd.d, w: wd.w, d: need, avail: R.depth - (wd.y + wd.d) }
+      ];
+      let bestW = 0;
+      for (const o of opts) {
+        if (o.avail < 20) continue;
+        if (!rects.some(r => r !== wd && overlap(o, r))) bestW = Math.max(bestW, Math.min(o.avail, need));
+      }
+      add(bestW >= need ? "ok" : "warn",
+        "Miejsce przed szafą na otwarcie drzwi (min. " + need + " cm)",
+        Math.round(bestW) + " cm");
+    }
+
+    // 8. zasięg do gniazdek
+    const far = [];
+    for (const r of rects) {
+      if (!r.f.needsPower) continue;
+      let best = Infinity;
+      for (const s of SOCKETS) if (s.type === "socket") best = Math.min(best, distPointRect(s.x, s.y, r));
+      if (best > 150) far.push(r.f.label + " (" + Math.round(best) + " cm)");
+    }
+    add(far.length ? "warn" : "ok",
+      far.length ? "Daleko od gniazdka, potrzebny przedłużacz: " + far.join(", ") : "Wszystkie urządzenia w zasięgu gniazdka",
+      far.length ? far.length + "×" : "OK");
+
+    // 9. strefa hobby
+    if (layout.hobbyArea) {
+      const h = { x: layout.hobbyArea.x, y: layout.hobbyArea.y, w: layout.hobbyArea.w, d: layout.hobbyArea.d };
+      const clash = rects.filter(r => overlap(h, r)).map(r => r.f.label);
+      const area = (h.w * h.d) / 10000;
+      add(clash.length ? "bad" : "ok",
+        clash.length ? "Strefa hobby zastawiona: " + clash.join(", ") : "Wolna podłoga na hobby / matę",
+        area.toFixed(1) + " m²");
+    } else {
+      add("warn", "Brak wydzielonej wolnej podłogi na hobby", "0 m²");
+    }
+
+    return out;
+  }
+
+  /* ---------- rysowanie ---------- */
+
+  const PAD = 58;
+  function draw(layout, an, opts) {
+    const maxW = 720;
+    const s = Math.min(maxW / R.width, 560 / R.depth);   // px na cm
+    const W = R.width * s + PAD * 2, H = R.depth * s + PAD * 2;
+    const X = v => PAD + v * s, Y = v => PAD + v * s;
+    const e = [];
+    const esc = t => String(t).replace(/[&<>]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
+
+    e.push(`<rect x="${PAD}" y="${PAD}" width="${R.width * s}" height="${R.depth * s}" fill="var(--floor)"/>`);
+
+    if (opts.grid) {
+      for (let x = 50; x < R.width; x += 50)
+        e.push(`<line x1="${X(x)}" y1="${Y(0)}" x2="${X(x)}" y2="${Y(R.depth)}" stroke="var(--grid)" stroke-width="1"/>`);
+      for (let y = 50; y < R.depth; y += 50)
+        e.push(`<line x1="${X(0)}" y1="${Y(y)}" x2="${X(R.width)}" y2="${Y(y)}" stroke="var(--grid)" stroke-width="1"/>`);
+    }
+
+    // obszar osiągalny dla osoby 60 cm szer.
+    if (opts.reach) {
+      const { cols, reachSeen } = an;
+      for (let i = 0; i < reachSeen.length; i++) {
+        if (!reachSeen[i]) continue;
+        const gx = i % cols, gy = (i / cols) | 0;
+        e.push(`<rect x="${X(gx * CELL)}" y="${Y(gy * CELL)}" width="${CELL * s + .6}" height="${CELL * s + .6}" fill="var(--reach)" opacity=".16"/>`);
+      }
+    }
+
+    // strefa hobby
+    if (opts.zones && layout.hobbyArea) {
+      const h = layout.hobbyArea;
+      e.push(`<rect x="${X(h.x)}" y="${Y(h.y)}" width="${h.w * s}" height="${h.d * s}" fill="${ZONES.hobby.color}" opacity=".10" stroke="${ZONES.hobby.color}" stroke-width="1.5" stroke-dasharray="7 5" rx="4"/>`);
+      e.push(`<text x="${X(h.x + h.w / 2)}" y="${Y(h.y + h.d / 2)}" text-anchor="middle" font-size="11" fill="${ZONES.hobby.color}" font-weight="600" letter-spacing=".05em">HOBBY / MATA</text>`);
+      e.push(`<text x="${X(h.x + h.w / 2)}" y="${Y(h.y + h.d / 2) + 14}" text-anchor="middle" font-size="10" fill="${ZONES.hobby.color}" opacity=".8">${(h.w * h.d / 10000).toFixed(1)} m²</text>`);
+    }
+
+    // grzejnik
+    for (const rad of RAD) {
+      e.push(`<rect x="${X(rad.x)}" y="${Y(rad.y)}" width="${rad.w * s}" height="${rad.d * s}" fill="none" stroke="var(--bad)" stroke-width="1.5"/>`);
+      for (let t = 0; t < rad.w; t += 8)
+        e.push(`<line x1="${X(rad.x + t)}" y1="${Y(rad.y)}" x2="${X(rad.x + t)}" y2="${Y(rad.y + rad.d)}" stroke="var(--bad)" stroke-width="1" opacity=".55"/>`);
+    }
+
+    // meble
+    for (const r of an.rects) {
+      const z = ZONES[r.f.zone] || { color: "var(--line-strong)" };
+      const fill = opts.zones ? z.color : "var(--line-strong)";
+      e.push(`<rect x="${X(r.x)}" y="${Y(r.y)}" width="${r.w * s}" height="${r.d * s}" fill="${fill}" opacity=".26" stroke="${fill}" stroke-width="1.8" rx="3"/>`);
+      const cx = X(r.x + r.w / 2), cy = Y(r.y + r.d / 2);
+      const small = r.w * s < 54 || r.d * s < 30;
+      e.push(`<text x="${cx}" y="${cy + (small ? 3 : 0)}" text-anchor="middle" font-size="${small ? 9 : 12}" font-weight="600" fill="var(--ink)">${esc(r.f.label)}</text>`);
+      if (!small)
+        e.push(`<text x="${cx}" y="${cy + 14}" text-anchor="middle" font-size="10" fill="var(--ink-soft)">${r.w}×${r.d}</text>`);
+    }
+
+    // ściany
+    e.push(`<rect x="${PAD}" y="${PAD}" width="${R.width * s}" height="${R.depth * s}" fill="none" stroke="var(--wall)" stroke-width="4"/>`);
+
+    // okna
+    for (const w of WINDOWS) {
+      const a = wallPoint(w.wall, w.offset), b = wallPoint(w.wall, w.offset + w.width);
+      e.push(`<line x1="${X(a.x)}" y1="${Y(a.y)}" x2="${X(b.x)}" y2="${Y(b.y)}" stroke="var(--bg)" stroke-width="6"/>`);
+      e.push(`<line x1="${X(a.x)}" y1="${Y(a.y)}" x2="${X(b.x)}" y2="${Y(b.y)}" stroke="#4a9fd4" stroke-width="3"/>`);
+      const mx = X((a.x + b.x) / 2), my = Y((a.y + b.y) / 2);
+      const off = w.wall === "N" ? -12 : w.wall === "S" ? 20 : 0;
+      e.push(`<text x="${mx}" y="${my + off}" text-anchor="middle" font-size="10" fill="#4a9fd4" font-weight="600">${esc(w.label)} ${w.width}</text>`);
+    }
+
+    // drzwi + łuk otwierania
+    if (DOOR) {
+      const a = wallPoint(DOOR.wall, DOOR.offset), b = wallPoint(DOOR.wall, DOOR.offset + DOOR.width);
+      e.push(`<line x1="${X(a.x)}" y1="${Y(a.y)}" x2="${X(b.x)}" y2="${Y(b.y)}" stroke="var(--bg)" stroke-width="6"/>`);
+      if (SWING) {
+        const pts = SWING.pts.map(p => `${X(p[0])},${Y(p[1])}`).join(" ");
+        e.push(`<polygon points="${pts}" fill="var(--accent)" opacity=".10"/>`);
+        e.push(`<polyline points="${pts}" fill="none" stroke="var(--accent)" stroke-width="1.3" stroke-dasharray="4 3"/>`);
+      }
+      const mx = X((a.x + b.x) / 2), my = Y((a.y + b.y) / 2);
+      const off = DOOR.wall === "S" ? 20 : -12;
+      e.push(`<text x="${mx}" y="${my + off}" text-anchor="middle" font-size="10" fill="var(--accent)" font-weight="600">DRZWI ${DOOR.width}</text>`);
+    }
+
+    // gniazdka / włączniki
+    if (opts.power) {
+      for (const f of DATA.fixtures) {
+        if (f.type === "radiator") continue;
+        const p = wallPoint(f.wall, f.offset);
+        const col = f.type === "socket" ? "var(--warn)" : f.type === "network" ? "#4a9fd4" : "var(--ink-faint)";
+        const push = { N: [0, 9], S: [0, -9], W: [9, 0], E: [-9, 0] }[f.wall];
+        e.push(`<circle cx="${X(p.x) + push[0]}" cy="${Y(p.y) + push[1]}" r="5" fill="var(--panel)" stroke="${col}" stroke-width="2"/>`);
+        const sym = f.type === "socket" ? "⚡" : f.type === "network" ? "⌁" : "○";
+        e.push(`<text x="${X(p.x) + push[0]}" y="${Y(p.y) + push[1] + 3}" text-anchor="middle" font-size="7" fill="${col}">${sym}</text>`);
+      }
+    }
+
+    // wymiary
+    const dy = PAD - 24, dx = PAD - 26;
+    e.push(`<line x1="${X(0)}" y1="${dy}" x2="${X(R.width)}" y2="${dy}" stroke="var(--ink-faint)" stroke-width="1"/>`);
+    e.push(`<text x="${X(R.width / 2)}" y="${dy - 6}" text-anchor="middle" font-size="12" fill="var(--ink-soft)" font-weight="600">${R.width} cm</text>`);
+    e.push(`<line x1="${dx}" y1="${Y(0)}" x2="${dx}" y2="${Y(R.depth)}" stroke="var(--ink-faint)" stroke-width="1"/>`);
+    e.push(`<text x="${dx - 6}" y="${Y(R.depth / 2)}" text-anchor="middle" font-size="12" fill="var(--ink-soft)" font-weight="600" transform="rotate(-90 ${dx - 6} ${Y(R.depth / 2)})">${R.depth} cm</text>`);
+
+    // róża kierunków
+    e.push(`<text x="${W - 20}" y="${PAD - 30}" text-anchor="end" font-size="10" fill="var(--ink-faint)">N ↑  ${(R.width * R.depth / 10000).toFixed(1)} m²</text>`);
+
+    const svg = document.getElementById("plan");
+    svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+    svg.setAttribute("width", W);
+    svg.setAttribute("height", H);
+    svg.innerHTML = e.join("");
+  }
+
+  /* ---------- UI ---------- */
+
+  let current = DATA.layouts[0].id;
+
+  function opts() {
+    return {
+      grid: document.getElementById("t-grid").checked,
+      zones: document.getElementById("t-zones").checked,
+      power: document.getElementById("t-power").checked,
+      reach: document.getElementById("t-reach").checked
+    };
+  }
+
+  function render() {
+    const layout = DATA.layouts.find(l => l.id === current);
+    const an = analyze(layout.placements);
+    draw(layout, an, opts());
+
+    document.querySelectorAll("#tabs .tab").forEach(b =>
+      b.setAttribute("aria-pressed", b.dataset.id === current));
+
+    document.getElementById("layout-name").textContent = layout.name;
+    document.getElementById("layout-summary").textContent = layout.summary || "";
+    const notes = layout.rationale || layout.issues || [];
+    document.getElementById("notes-head").textContent =
+      layout.rationale ? "Dlaczego tak" : layout.issues ? "Co nie działa dzisiaj" : "";
+    document.getElementById("layout-notes").innerHTML =
+      notes.map(n => `<li>${n.replace(/[&<>]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]))}</li>`).join("");
+
+    const checks = runChecks(layout, an);
+    document.getElementById("checks").innerHTML = checks.map(c =>
+      `<div class="check ${c.level}"><span class="dot"></span><span class="label">${c.label}</span><span class="val">${c.val}</span></div>`
+    ).join("");
+
+    const freeFloor = an.rects.reduce((acc, r) => acc - r.w * r.d, R.width * R.depth) / 10000;
+    // strefa ruchu = gdzie osoba o barkach 60 cm może stanąć i tam dojść od drzwi
+    const moveArea = an.reachAt.count * CELL * CELL / 10000;
+    const bad = checks.filter(c => c.level === "bad").length;
+    const warn = checks.filter(c => c.level === "warn").length;
+    document.getElementById("metrics").innerHTML = [
+      ["Powierzchnia", (R.width * R.depth / 10000).toFixed(1), "m²"],
+      ["Wolna podłoga", freeFloor.toFixed(1), "m²"],
+      ["Strefa ruchu ⌀60", moveArea.toFixed(1), "m²"],
+      ["Najwęższe przejście", an.corridor ? Math.round(an.corridor) : "—", "cm"],
+      ["Problemy", bad + " / " + warn, "bł. / ostrz."]
+    ].map(([k, v, u]) => `<div class="metric"><div class="k">${k}</div><div class="v">${v} <span class="u">${u}</span></div></div>`).join("");
+
+    document.getElementById("legend").innerHTML =
+      Object.values(ZONES).map(z => `<span><i class="sw" style="background:${z.color}"></i>${z.label}</span>`).join("") +
+      `<span><i class="sw" style="background:#4a9fd4"></i>Okno</span>` +
+      `<span><i class="sw" style="background:var(--accent)"></i>Drzwi + łuk otwierania</span>` +
+      `<span><i class="sw" style="background:var(--bad)"></i>Grzejnik</span>` +
+      `<span><i class="sw" style="background:var(--warn)"></i>Gniazdko 230V</span>`;
+  }
+
+  document.getElementById("tabs").innerHTML = DATA.layouts.map(l =>
+    `<button class="tab" data-id="${l.id}" aria-pressed="false">${l.name}</button>`).join("");
+  document.querySelectorAll("#tabs .tab").forEach(b =>
+    b.addEventListener("click", () => { current = b.dataset.id; render(); }));
+  ["t-grid", "t-zones", "t-power", "t-reach"].forEach(id =>
+    document.getElementById(id).addEventListener("change", render));
+
+  if (DATA.meta.status === "PLACEHOLDER") {
+    const b = document.getElementById("banner");
+    b.hidden = false;
+    b.innerHTML = "<strong>Dane zastępcze.</strong> " + DATA.meta.note;
+  }
+  document.getElementById("foot").textContent =
+    "Generowane z room.json · siatka analityczna " + CELL + " cm · osoba przyjęta jako okrąg ⌀" + (PERSON_R * 2) + " cm";
+
+  render();
+})();
+</script>
